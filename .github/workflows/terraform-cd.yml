@@ -32,7 +32,7 @@ jobs:
     # 🔥 uruchomi się TYLKO w momencie merge PR
     # i TYLKO jeśli brancha ma prefix auto_add_analytics_account_
     if: 
-      startsWith(github.ref_name), 'auto_add_analytics_account_')
+      startsWith((github.ref_name), 'auto_add_analytics_account_')
 
     runs-on: traffic-runners
 
