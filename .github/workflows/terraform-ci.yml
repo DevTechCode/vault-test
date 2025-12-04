@@ -31,7 +31,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'tf-cd.yml', 
+              workflow_id: 'terraform-cd.yml', 
               ref: 'main',
               inputs: {
                 analytics_account: '${{ inputs.analytics_account }}',
