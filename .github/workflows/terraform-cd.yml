@@ -28,7 +28,7 @@ jobs:
   trigger-sa-job-analytics-accounts:
       name: 3. Trigger SA Job - Analytics Accounts
       if: ${{ inputs.is_sa_automation && inputs.analytics_account != '' }}
-      runs-on: traffic-runners
+      runs-on: ubuntu-latest
   
       steps:
         - name: Trigger SA Jenkins job
@@ -40,7 +40,7 @@ jobs:
   should-skip:
       name: noname
       if: ${{ !inputs.is_sa_automation && inputs.analytics_account != '' }}
-      runs-on: traffic-runners
+      runs-on: ubuntu-latest
   
       steps:
         - name: Trigger SA Jenkins job
