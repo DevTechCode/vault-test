@@ -1,18 +1,17 @@
-name: Terraform Deploy
+name: Terraform CD
 
 on:
-  push:
-      branches:
-        - main
-      paths:
-      - '**/*.tf'
-      - '**/*.tfvars'
-      - '**/*.yaml'
-      - '**/*.yml'
-      - '**/*.json'
-      - '**/*.hcl'
-      - '.github/workflows/**'
-
+  workflow_dispatch:
+    inputs:
+      analytics_account:
+        required: false
+        type: string
+        default: ''
+      is_sa_automation:
+        required: false
+        type: boolean
+        default: false
+        
 permissions:
   id-token: write
   contents: read
@@ -25,75 +24,16 @@ jobs:
 
   # terraform-deploy-g00:
   #   ...
-
+  
   trigger-sa-job-analytics-accounts:
-    name: Trigger SA Job - Analytics Accounts
-
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Extract PR number and analytics account
-        id: extract
-        run: |
-          MSG="${{ github.event.head_commit.message }}"
-          echo "Commit message:"
-          echo "$MSG"
-          
-      # - name: Debug GITHUB CONTEXT
-      #   run: |
-      #     echo "---- FULL COMMIT MESSAGE ----"
-      #     echo "${{ github.event.head_commit.message }}"
-      #     echo ""
-      #     echo "---- GITHUB ACTOR ----"
-      #     echo "${{ github.actor }}"
-      #     echo "" 
-      #     echo "---- FULL github.event.head_commit JSON ----"
-      #     echo '${{ toJson(github.event.head_commit) }}'
-      #     echo ""
-      #     echo "---- FULL github.event JSON ----"
-      #     echo '${{ toJson(github.event) }}'
-
-      # - name: Extract PR number and analytics account
-      #   id: extract
-      #   run: |
-      #     MSG="${{ github.event.head_commit.message }}"
-      #     echo "Commit message:"
-      #     echo "$MSG"
-
-      #     # Numer PR (z "Merge pull request #123")
-      #     PR_NUMBER=$(echo "$MSG" | sed -n 's/.*Merge pull request #\([0-9]\+\).*/\1/p')
-
-      #     if [[ -z "$PR_NUMBER" ]]; then
-      #       echo "Error: PR number not found"
-      #       exit 1
-      #     fi
-
-      #     # Nazwa konta (z: This PR adds the analytics account `xxx`.)
-      #     ACCOUNT=$(echo "$MSG" | sed -n 's/.*This PR adds the analytics account `\([^`]\+\)`.*/\1/p')
-
-      #     if [[ -z "$ACCOUNT" ]]; then
-      #       echo "Error: analytics account not found"
-      #       exit 1
-      #     fi
-
-      #     echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-      #     echo "account=$ACCOUNT" >> $GITHUB_OUTPUT
-
-      #     echo "Extracted:"
-      #     echo "  PR: $PR_NUMBER"
-      #     echo "  Account: $ACCOUNT"
-
-      # - name: Trigger SA Jenkins job
-      #   env:
-      #     ANALYTICS_ACCOUNT: ${{ steps.extract-account.outputs.account }}
-      #   run: |
-      #     set -euo pipefail
-
-      #     curl -X POST "http://localhost:8080/test" \
-      #       -H "Content-Type: application/json" \
-      #       -d "{\"account\": \"${ANALYTICS_ACCOUNT}\", \"reason\": \"Personal changes in the access group.\"}"
-
-      #     echo "👍 Sent request to localhost for account: $ANALYTICS_ACCOUNT"
+      name: 3. Trigger SA Job - Analytics Accounts
+      if: github.event.inputs.is_sa_automation == true
+      runs-on: traffic-runners
+  
+      steps:
+        - name: Trigger SA Jenkins job
+          run: |
+            set -euo pipefail
+            echo "Triggering Jenkins for account: $ANALYTICS_ACCOUNT"
+            echo "${{ github.event.inputs.analytics_account }}"
+            
