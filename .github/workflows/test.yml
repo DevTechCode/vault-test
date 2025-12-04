@@ -15,8 +15,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh auth status
-          # Zamień OWNER/REPO na owner/repo lub usuń --repo jeśli jesteś w katalogu repo po checkout
-          gh pr view 2 --repo OWNER/REPO --json number,state,mergeable,mergeStateStatus,autoMergeRequest,author,headRefName,baseRefName | tee pr-info.json
-          echo "----- PR JSON -----"
-          cat pr-info.json
+          gh pr view 2 --repo DevTechCode/test-vault-test --json number,state,mergeable,mergeStateStatus,autoMergeRequest,author,headRefName,baseRefName
