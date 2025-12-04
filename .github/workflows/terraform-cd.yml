@@ -1,0 +1,64 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.tf'
+      - '**/*.tfvars'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      - '**/*.hcl'
+      - '.github/workflows/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # terraform-deploy-g03:
+  #   name: Deploy to Test (g03)
+  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-cd.yml@main
+  #   with:
+  #     tf_var_file: "environments/traffic-g03.tfvars"
+  #     tf_init_custom_options: "-backend-config=backend-g03.conf"
+  #   secrets: inherit
+
+  # terraform-deploy-g00:
+  #   name: Deploy to Production (g00)
+  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-cd.yml@main
+  #   with:
+  #     tf_var_file: "environments/traffic-g00.tfvars"
+  #     tf_init_custom_options: "-backend-config=backend-g00.conf"
+  #   secrets: inherit
+
+  trigger-sa-job-analytics-accounts:
+    name: Trigger SA Job - Analytics Accounts
+    # needs: [terraform-deploy-g00]
+    if: startsWith(github.ref_name, 'auto_add_analytics_account_')
+    runs-on: traffic-runners
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract analytics account
+        id: extract-account
+        run: |
+          ANALYTICS_ACCOUNT="${GITHUB_REF_NAME#auto_add_analytics_account_}"
+          echo "account=$ANALYTICS_ACCOUNT" >> $GITHUB_OUTPUT
+          echo "Analytics account: $ANALYTICS_ACCOUNT"
+
+      - name: Trigger SA Jenkins job
+        if: steps.extract-account.outputs.account != ''
+        env:
+          ANALYTICS_ACCOUNT: ${{ steps.extract-account.outputs.account }}
+        run: |
+          set -e
+
+          curl -X POST "http://localhost:8080/test" \
+            -H "Content-Type: application/json" \
+            -d "{\"account\": \"${ANALYTICS_ACCOUNT}\", \"reason\": \"Personal changes in the access group.\"}"
+
+          echo "👍 Sent request to localhost for account: $ANALYTICS_ACCOUNT"

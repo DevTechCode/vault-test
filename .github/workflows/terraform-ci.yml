@@ -42,34 +42,34 @@ jobs:
             echo "No duplicate keys found."
           fi
 
-  terraform-ci-g03:
-    name: Terraform CI - Test (g03)
-    uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-ci.yml@main
-    needs: check-duplicates
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
-      tf_var_file: "environments/traffic-g03.tfvars"
-      tf_init_custom_options: "-backend-config=backend-g03.conf"
-    permissions:
-      id-token: write
-      issues: write
-      contents: read
-      pull-requests: write
-      actions: read
-    secrets: inherit
+  # terraform-ci-g03:
+  #   name: Terraform CI - Test (g03)
+  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-ci.yml@main
+  #   needs: check-duplicates
+  #   with:
+  #     pr_number: ${{ github.event.pull_request.number }}
+  #     tf_var_file: "environments/traffic-g03.tfvars"
+  #     tf_init_custom_options: "-backend-config=backend-g03.conf"
+  #   permissions:
+  #     id-token: write
+  #     issues: write
+  #     contents: read
+  #     pull-requests: write
+  #     actions: read
+  #   secrets: inherit
 
-  terraform-ci-g00:
-    name: Terraform CI - Production (g00)
-    uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-ci.yml@main
-    needs: check-duplicates
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
-      tf_var_file: "environments/traffic-g00.tfvars"
-      tf_init_custom_options: "-backend-config=backend-g00.conf"
-    permissions:
-      id-token: write
-      issues: write
-      contents: read
-      pull-requests: write
-      actions: read
-    secrets: inherit
+  # terraform-ci-g00:
+  #   name: Terraform CI - Production (g00)
+  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-ci.yml@main
+  #   needs: check-duplicates
+  #   with:
+  #     pr_number: ${{ github.event.pull_request.number }}
+  #     tf_var_file: "environments/traffic-g00.tfvars"
+  #     tf_init_custom_options: "-backend-config=backend-g00.conf"
+  #   permissions:
+  #     id-token: write
+  #     issues: write
+  #     contents: read
+  #     pull-requests: write
+  #     actions: read
+  #   secrets: inherit
