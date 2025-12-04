@@ -1,0 +1,173 @@
+name: BIZSA - add analytics account
+
+on:
+  workflow_dispatch:
+    inputs:
+      analytics_account:
+        description: "Analytics account to add by SA"
+        required: true
+        type: string
+
+concurrency:
+  group: bizsa-automation
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  trigger-pipeline:
+    name: Trigger pipeline (BIZSA - add analytics account)
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.analytics_account != '' }}
+    runs-on: traffic-runners
+    env:
+      ACCOUNT: ${{ inputs.analytics_account || github.event.inputs.analytics_account }}
+      JSON_FILE: ./secret_engines_analytics_accounts.json
+
+    steps:
+      - name: Validate input
+        run: |
+          set -euo pipefail
+          if [[ -z "$ACCOUNT" ]]; then
+            echo "Error: analytics_account cannot be empty"
+            exit 1
+          fi
+          echo "Validated account: $ACCOUNT"
+
+      - uses: actions/checkout@v6
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Check if account already exists
+        id: check_account
+        run: |
+          set -euo pipefail
+          if [[ -f "$JSON_FILE" ]]; then
+            if jq -e --arg account "$ACCOUNT" '.["analytics-accounts"] | has($account)' "$JSON_FILE" > /dev/null 2>&1; then
+              echo "exists=true" >> $GITHUB_OUTPUT
+              echo "Warning: Account '$ACCOUNT' already exists in $JSON_FILE"
+            else
+              echo "exists=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "File $JSON_FILE does not exist, will be created"
+          fi
+
+      - name: Create branch
+        id: create_branch
+        if: steps.check_account.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          BRANCH="auto_add_analytics_account_${ACCOUNT}"
+
+          # Fetch all branches to check remote
+          git fetch origin
+
+          # Check if branch exists on remote
+          if git show-ref --verify --quiet refs/remotes/origin/"$BRANCH"; then
+            echo "Branch $BRANCH exists on remote, checking it out"
+
+            git checkout -b "$BRANCH" origin/"$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+            git pull origin "$BRANCH" || true
+
+            if [[ -f "$JSON_FILE" ]]; then
+              if jq -e --arg account "$ACCOUNT" '.["analytics-accounts"] | has($account)' "$JSON_FILE" > /dev/null 2>&1; then
+                echo "Account '$ACCOUNT' already exists in remote branch $BRANCH"
+                echo "exists_in_branch=true" >> $GITHUB_OUTPUT
+              else
+                echo "exists_in_branch=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "exists_in_branch=false" >> $GITHUB_OUTPUT
+            fi
+
+          elif git show-ref --verify --quiet refs/heads/"$BRANCH"; then
+            echo "Branch $BRANCH exists locally, checking it out"
+            git checkout "$BRANCH"
+            echo "exists_in_branch=false" >> $GITHUB_OUTPUT
+
+          else
+            echo "Creating new branch $BRANCH"
+            git checkout -b "$BRANCH"
+            echo "exists_in_branch=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+
+      - name: Add analytics account to JSON
+        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.exists_in_branch != 'true'
+        run: |
+          set -euo pipefail
+          echo "Adding analytics account: $ACCOUNT"
+
+          # Create file with empty object if it doesn't exist
+          if [[ ! -f "$JSON_FILE" ]]; then
+            echo '{"analytics-accounts": {}}' > "$JSON_FILE"
+          fi
+
+          # Ensure analytics-accounts key exists
+          if ! jq -e '.["analytics-accounts"]' "$JSON_FILE" > /dev/null 2>&1; then
+            jq '. + {"analytics-accounts": {}}' "$JSON_FILE" > tmp.json
+            mv tmp.json "$JSON_FILE"
+          fi
+
+          # Add the account
+          jq --arg account "$ACCOUNT" '.["analytics-accounts"] += { ($account): "" }' "$JSON_FILE" > tmp.json
+          mv tmp.json "$JSON_FILE"
+
+          # Validate JSON syntax
+          if ! jq empty "$JSON_FILE" 2>/dev/null; then
+            echo "Error: Generated invalid JSON"
+            exit 1
+          fi
+
+          echo "Successfully added account: $ACCOUNT"
+
+      - name: Commit & push changes
+        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.branch != '' && steps.create_branch.outputs.exists_in_branch != 'true'
+        run: |
+          set -euo pipefail
+
+          # Only add the specific file
+          git add "$JSON_FILE"
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 1
+          fi
+
+          git commit -m "Add ${{ env.ACCOUNT }} to secret_engines_analytics_accounts.json"
+
+          git push --force-with-lease origin "${{ steps.create_branch.outputs.branch }}"
+
+      - name: Create Pull Request
+        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.branch != '' && steps.create_branch.outputs.exists_in_branch != 'true'
+        id: create_pr
+        run: |
+          PR_NUMBER=$(gh pr create \
+            --title "Add analytics account ${{ env.ACCOUNT }}" \
+            --body "Auto-created by automation workflow
+          This PR adds the analytics account \`${{ env.ACCOUNT }}\` to \`secret_engines_analytics_accounts.json\`." \
+            --base main \
+            --head "${{ steps.create_branch.outputs.branch }}" \
+            --json number --jq '.number')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "Created PR #$PR_NUMBER"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge Pull Request
+        if: steps.create_pr.outputs.pr_number != ''
+        run: |
+          gh pr merge ${{ steps.create_pr.outputs.pr_number }} --auto --merge --delete-branch
+          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} will be auto-merged when checks pass."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
