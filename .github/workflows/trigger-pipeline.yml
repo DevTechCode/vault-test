@@ -15,7 +15,8 @@ concurrency:
 permissions:
   contents: write
   actions: write
-
+  id-token: write
+  
 jobs:
   trigger-pipeline:
     name: Trigger pipeline (BIZSA - add analytics account)
