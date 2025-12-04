@@ -35,5 +35,5 @@ jobs:
           run: |
             set -euo pipefail
             echo "Triggering Jenkins for account: $ANALYTICS_ACCOUNT"
-            echo "${{ github.event.inputs.analytics_account }}"
+            echo "${{ inputs.analytics_account }}"
             
