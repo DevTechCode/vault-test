@@ -180,29 +180,32 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Trigger Terraform CI Workflow 
+      - name: Trigger Terraform CI Workflow
         if: steps.merge.conclusion == 'success'
         uses: actions/github-script@v7
         with:
           script: |
-            const account = inputs.analytics_account;
+            const core = require('@actions/core');
+      
+            const account = core.getInput('analytics_account');   // <--- POPRAWKA
             const repo = context.repo;
             const ref = 'main';
-
+      
             console.log(`Starting automation chain for account: ${account}`);
-            
+      
             await github.rest.actions.createWorkflowDispatch({
               owner: repo.owner,
               repo: repo.repo,
-              workflow_id: 'terraform-ci.yml', // NAZWA PLIKU CI
+              workflow_id: 'terraform-ci.yml',
               ref: ref,
               inputs: {
                 analytics_account: account,
                 is_sa_automation: 'true'
-              },
+              }
             });
+      
             console.log('Successfully triggered tf-ci.yml.');
-            
+          analytics_account: ${{ inputs.analytics_account }}  
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
