@@ -15,4 +15,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr view 2 --repo DevTechCode/test-vault-test --json number,state,mergeable,mergeStateStatus,autoMergeRequest,author,headRefName,baseRefName
+          gh pr view 2 --repo DevTechCode/vault-test --json number,state,mergeable,mergeStateStatus,autoMergeRequest,author,headRefName,baseRefName
