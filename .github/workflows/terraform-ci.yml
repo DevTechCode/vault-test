@@ -30,8 +30,8 @@ jobs:
               workflow_id: 'tf-cd.yml', 
               ref: 'main',
               inputs: {
-                analytics_account: '${{ github.event.inputs.analytics_account }}',
-                is_sa_automation: '${{ github.event.inputs.is_sa_automation }}'
+                analytics_account: '${{ inputs.analytics_account }}',
+                is_sa_automation: '${{ inputs.is_sa_automation }}'
               },
             });
         env:
