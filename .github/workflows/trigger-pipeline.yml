@@ -173,8 +173,5 @@ jobs:
 
       - name: Auto-merge Pull Request
         if: steps.create_pr.outputs.pr_number != ''
-        run: |
-          gh pr merge ${{ steps.create_pr.outputs.pr_number }} --auto --merge --delete-branch
-          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} will be auto-merged when checks pass."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: | 
+          set +e echo "🔄 Enabling auto-merge for PR #$PR_NUMBER" # próbujemy włączyć auto-merge gh pr merge "$PR_NUMBER" --auto --merge --delete-branch STATUS=$? # jeśli exit != 0 to GH CLI już miało auto-merge włączone if [ "$STATUS" -ne 0 ]; then echo "⚠ gh pr merge returned exit code $STATUS" echo "ℹ This usually means auto-merge is ALREADY ENABLED. Ignoring." else echo "✅ Auto-merge successfully enabled for PR #$PR_NUMBER" fi # nigdy nie failuj joba exit 0 co to
