@@ -1,9 +1,10 @@
 name: Terraform Deploy
 
 on:
-  pull_request:
-    types: [closed]
-    paths:
+  push:
+      branches:
+        - main
+      paths:
       - '**/*.tf'
       - '**/*.tfvars'
       - '**/*.yaml'
@@ -43,8 +44,18 @@ jobs:
       - name: Extract analytics account from branch name
         id: extract-account
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          ACCOUNT="${BRANCH#auto_add_analytics_account_}"
+          BRANCH="${{ github.ref_name }}"
+
+          PREFIX="auto_add_analytics_account_"
+
+          # sprawdzamy czy branch zaczyna się od poprawnego prefixu
+          if [[ "$BRANCH" != $PREFIX* ]]; then
+            echo "Error: branch name does not match expected prefix: $PREFIX"
+            exit 1
+          fi
+
+          # wyciągnięcie nazwy konta
+          ACCOUNT="${BRANCH#$PREFIX}"
 
           if [[ -z "$ACCOUNT" ]]; then
             echo "Error: extracted analytics account is empty"
