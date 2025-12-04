@@ -12,7 +12,9 @@ on:
       - '**/*.json'
       - '**/*.hcl'
       - '.github/workflows/**'
-
+  workflow_dispatch:
+  
+  
 jobs:
   check-duplicates:
     name: Check Duplicates in json
