@@ -1,9 +1,8 @@
 name: Terraform Deploy
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [closed]
     paths:
       - '**/*.tf'
       - '**/*.tfvars'
@@ -18,44 +17,48 @@ permissions:
   contents: read
 
 jobs:
+
+  # 👇 Terraform deploy zostawiam bez zmian (zakomentowane)
   # terraform-deploy-g03:
-  #   name: Deploy to Test (g03)
-  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-cd.yml@main
-  #   with:
-  #     tf_var_file: "environments/traffic-g03.tfvars"
-  #     tf_init_custom_options: "-backend-config=backend-g03.conf"
-  #   secrets: inherit
+  #   ...
 
   # terraform-deploy-g00:
-  #   name: Deploy to Production (g00)
-  #   uses: RTBHouse-Traffic/common-workflows/.github/workflows/tf-cd.yml@main
-  #   with:
-  #     tf_var_file: "environments/traffic-g00.tfvars"
-  #     tf_init_custom_options: "-backend-config=backend-g00.conf"
-  #   secrets: inherit
+  #   ...
 
   trigger-sa-job-analytics-accounts:
     name: Trigger SA Job - Analytics Accounts
-    # needs: [terraform-deploy-g00]
-    if: startsWith(github.ref_name, 'auto_add_analytics_account_')
+
+    # 🔥 uruchomi się TYLKO w momencie merge PR
+    # i TYLKO jeśli brancha ma prefix auto_add_analytics_account_
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'auto_add_analytics_account_')
+
     runs-on: traffic-runners
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Extract analytics account
+      - name: Extract analytics account from branch name
         id: extract-account
         run: |
-          ANALYTICS_ACCOUNT="${GITHUB_REF_NAME#auto_add_analytics_account_}"
-          echo "account=$ANALYTICS_ACCOUNT" >> $GITHUB_OUTPUT
-          echo "Analytics account: $ANALYTICS_ACCOUNT"
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          ACCOUNT="${BRANCH#auto_add_analytics_account_}"
+
+          if [[ -z "$ACCOUNT" ]]; then
+            echo "Error: extracted analytics account is empty"
+            exit 1
+          fi
+
+          echo "Extracted account: $ACCOUNT"
+          echo "account=$ACCOUNT" >> $GITHUB_OUTPUT
 
       - name: Trigger SA Jenkins job
-        if: steps.extract-account.outputs.account != ''
         env:
           ANALYTICS_ACCOUNT: ${{ steps.extract-account.outputs.account }}
         run: |
-          set -e
+          set -euo pipefail
 
           curl -X POST "http://localhost:8080/test" \
             -H "Content-Type: application/json" \
