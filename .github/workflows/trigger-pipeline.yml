@@ -151,15 +151,20 @@ jobs:
         if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.branch != '' && steps.create_branch.outputs.exists_in_branch != 'true'
         id: create_pr
         run: |
-          PR_NUMBER=$(gh pr create \
-            --title "Add analytics account ${{ env.ACCOUNT }}" \
-            --body "Auto-created by automation workflow
-          This PR adds the analytics account \`${{ env.ACCOUNT }}\` to \`secret_engines_analytics_accounts.json\`." \
-            --base main \
-            --head "${{ steps.create_branch.outputs.branch }}" \
-            --json number --jq '.number')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "Created PR #$PR_NUMBER"
+              OUTPUT=$(gh pr create \
+                --title "Add analytics account ${{ env.ACCOUNT }}" \
+                --body "Auto-created by automation workflow
+              This PR adds the analytics account \`${{ env.ACCOUNT }}\`." \
+                --base main \
+                --head "${{ steps.create_branch.outputs.branch }}")
+              
+              echo "$OUTPUT"
+              
+              # wydobycie numeru PR (np. "https://github.com/.../pull/123")
+              PR_NUMBER=$(echo "$OUTPUT" | grep -oE 'pull/[0-9]+' | cut -d'/' -f2)
+              
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+              echo "Created PR #$PR_NUMBER"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
