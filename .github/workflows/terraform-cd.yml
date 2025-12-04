@@ -27,7 +27,19 @@ jobs:
   
   trigger-sa-job-analytics-accounts:
       name: 3. Trigger SA Job - Analytics Accounts
-      if: github.event.inputs.is_sa_automation == true
+      if: ${{ inputs.is_sa_automation && inputs.analytics_account != '' }}
+      runs-on: traffic-runners
+  
+      steps:
+        - name: Trigger SA Jenkins job
+          run: |
+            set -euo pipefail
+            echo "Triggering Jenkins for account: $ANALYTICS_ACCOUNT"
+            echo "${{ inputs.analytics_account }}"
+            
+  should-skip:
+      name: noname
+      if: ${{ !inputs.is_sa_automation && inputs.analytics_account != '' }}
       runs-on: traffic-runners
   
       steps:
