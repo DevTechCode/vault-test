@@ -18,10 +18,10 @@ on:
         
 jobs:
   trigger_cd:
+    if: ${{ inputs.is_sa_automation && inputs.analytics_account != '' }}
     name: 2. Trigger Terraform CD Workflow (tf-cd.yml)
-    # needs: [ci_job_name] 
+    needs: []
     runs-on: ubuntu-latest
-    if: success()
     steps:
       - name: Call Terraform CD Workflow
         uses: actions/github-script@v7
