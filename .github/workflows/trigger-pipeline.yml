@@ -21,7 +21,7 @@ jobs:
   trigger-pipeline:
     name: Trigger pipeline (BIZSA - add analytics account)
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.analytics_account != '' }}
-    runs-on: traffic-runners
+    runs-on: ubuntu-latest
     env:
       ACCOUNT: ${{ inputs.analytics_account }}
       JSON_FILE: ./secret_engines_analytics_accounts.json
