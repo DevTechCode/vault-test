@@ -34,7 +34,7 @@ jobs:
     # if: 
     #   startsWith((github.ref_name), 'auto_add_analytics_account_')
 
-    runs-on: traffic-runners
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
