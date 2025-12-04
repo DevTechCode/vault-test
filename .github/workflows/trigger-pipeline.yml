@@ -178,4 +178,31 @@ jobs:
           echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been merged"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Terraform CI Workflow 
+        if: steps.merge.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const account = process.env.ACCOUNT;
+            const repo = context.repo;
+            const ref = 'main';
+
+            console.log(`Starting automation chain for account: ${account}`);
+            
+            // Wywołanie tf-ci.yml - pierwszego w łańcuchu
+            await github.rest.actions.createWorkflowDispatch({
+              owner: repo.owner,
+              repo: repo.repo,
+              workflow_id: 'terraform-ci.yml', // NAZWA PLIKU CI
+              ref: ref,
+              inputs: {
+                analytics_account: account,
+                is_sa_automation: 'true'
+              },
+            });
+            console.log('Successfully triggered tf-ci.yml.');
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACCOUNT: ${{ env.ACCOUNT }}
           
