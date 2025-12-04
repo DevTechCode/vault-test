@@ -174,7 +174,8 @@ jobs:
       - name: Auto-merge Pull Request
         if: steps.create_pr.outputs.pr_number != ''
         run: |
-          gh pr merge ${{ steps.create_pr.outputs.pr_number }} --auto --merge --delete-branch
-          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} will be auto-merged when checks pass."
+          gh pr merge "$PR_NUM" --merge --delete-branch
+          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been merged"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
