@@ -14,18 +14,16 @@ concurrency:
 
 permissions:
   contents: write
-  actions: write
-  id-token: write
   pull-requests: write
+  id-token: write
 
-  
 jobs:
   trigger-pipeline:
     name: Trigger pipeline (BIZSA - add analytics account)
-    # if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.analytics_account != '' }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.analytics_account != '' }}
+    runs-on: traffic-runners
     env:
-      ACCOUNT: ${{ inputs.analytics_account || github.event.inputs.analytics_account }}
+      ACCOUNT: ${{ inputs.analytics_account }}
       JSON_FILE: ./secret_engines_analytics_accounts.json
 
     steps:
@@ -59,6 +57,16 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "File $JSON_FILE does not exist, will be created"
+          fi
+
+      - name: Check if should continue
+        id: should_continue
+        run: |
+          if [[ "${{ steps.check_account.outputs.exists }}" == "false" && \
+                "${{ steps.create_branch.outputs.exists_in_branch }}" != "true" ]]; then
+            echo "SHOULD_CONTINUE=true" >> $GITHUB_ENV
+          else
+            echo "SHOULD_CONTINUE=false" >> $GITHUB_ENV
           fi
 
       - name: Create branch
@@ -104,7 +112,7 @@ jobs:
 
 
       - name: Add analytics account to JSON
-        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.exists_in_branch != 'true'
+        if: env.SHOULD_CONTINUE == 'true'
         run: |
           set -euo pipefail
           echo "Adding analytics account: $ACCOUNT"
@@ -133,11 +141,10 @@ jobs:
           echo "Successfully added account: $ACCOUNT"
 
       - name: Commit & push changes
-        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.branch != '' && steps.create_branch.outputs.exists_in_branch != 'true'
+        if: env.SHOULD_CONTINUE == 'true'
         run: |
           set -euo pipefail
 
-          # Only add the specific file
           git add "$JSON_FILE"
 
           # Check if there are changes to commit
@@ -147,41 +154,34 @@ jobs:
           fi
 
           git commit -m "Add ${{ env.ACCOUNT }} to secret_engines_analytics_accounts.json"
-
           git push --force-with-lease origin "${{ steps.create_branch.outputs.branch }}"
 
       - name: Create Pull Request
-        if: steps.check_account.outputs.exists == 'false' && steps.create_branch.outputs.branch != '' && steps.create_branch.outputs.exists_in_branch != 'true'
-        id: create_pr
+        if: env.SHOULD_CONTINUE == 'true'
         run: |
-              OUTPUT=$(gh pr create \
-                --title "Add analytics account ${{ env.ACCOUNT }}" \
-                --body "Auto-created by automation workflow
-              This PR adds the analytics account \`${{ env.ACCOUNT }}\`." \
-                --base main \
-                --head "${{ steps.create_branch.outputs.branch }}")
-              
-              echo "$OUTPUT"
-              
-              # wydobycie numeru PR (np. "https://github.com/.../pull/123")
-              PR_NUMBER=$(echo "$OUTPUT" | grep -oE 'pull/[0-9]+' | cut -d'/' -f2)
-              
-              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-              echo "Created PR #$PR_NUMBER"
+          PR_NUMBER=$(gh pr create \
+            --title "Add analytics account ${{ env.ACCOUNT }}" \
+            --body "Auto-created by automation workflow
+          This PR adds the analytics account \`${{ env.ACCOUNT }}\` to \`secret_engines_analytics_accounts.json\`." \
+            --base main \
+            --head "${{ steps.create_branch.outputs.branch }}" \
+            --json number --jq '.number')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "Created PR #$PR_NUMBER"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Auto-merge Pull Request
         if: steps.create_pr.outputs.pr_number != ''
         id: merge
         run: |
-          gh pr merge "$PR_NUM" --merge --delete-branch
-          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been merged"
+            gh pr merge "${{ steps.create_pr.outputs.pr_number }}" --merge --delete-branch
+            echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been merged"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger Terraform CI Workflow
-        if: steps.merge.conclusion == 'success'
+        if: steps.merge.outcome == 'success'
         uses: actions/github-script@v7
         env:
           ANALYTICS_ACCOUNT: ${{ inputs.analytics_account }}
@@ -191,18 +191,17 @@ jobs:
             const account = process.env.ANALYTICS_ACCOUNT;
             const repo = context.repo;
             const ref = 'main';
-      
-            console.log(`Starting automation chain for account: ${account}`);
-      
+
+
             await github.rest.actions.createWorkflowDispatch({
-              owner: repo.owner,
-              repo: repo.repo,
-              workflow_id: 'terraform-ci.yml',
-              ref: ref,
-              inputs: {
-                analytics_account: account,
-                is_sa_automation: 'true'
-              }
-            });
-      
-            console.log('Successfully triggered tf-ci.yml.');
+                owner: repo.owner,
+                repo: repo.repo,
+                workflow_id: 'terraform-ci.yml',
+                ref: ref,
+                inputs: {
+                  analytics_account: account,
+                  is_sa_automation: 'true'
+                }
+              });
+
+              console.log(' Triggered terraform-ci.yml');
