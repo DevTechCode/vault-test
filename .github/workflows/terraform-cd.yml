@@ -28,40 +28,42 @@ jobs:
 
   trigger-sa-job-analytics-accounts:
     name: Trigger SA Job - Analytics Accounts
-
-    # 🔥 uruchomi się TYLKO w momencie merge PR
-    # i TYLKO jeśli brancha ma prefix auto_add_analytics_account_
-    # if: 
-    #   startsWith((github.ref_name), 'auto_add_analytics_account_')
+    if: contains(github.event.head_commit.message, 'This PR adds the analytics account')
 
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Extract analytics account from branch name
-        id: extract-account
+      - name: Extract PR number and analytics account
+        id: extract
         run: |
-          BRANCH="${{ github.ref_name }}"
+          MSG="${{ github.event.head_commit.message }}"
+          echo "Commit message:"
+          echo "$MSG"
 
-          PREFIX="auto_add_analytics_account_"
+          # Numer PR (z "Merge pull request #123")
+          PR_NUMBER=$(echo "$MSG" | sed -n 's/.*Merge pull request #\([0-9]\+\).*/\1/p')
 
-          # sprawdzamy czy branch zaczyna się od poprawnego prefixu
-          if [[ "$BRANCH" != $PREFIX* ]]; then
-            echo "Error: branch name does not match expected prefix: $PREFIX"
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "Error: PR number not found"
             exit 1
           fi
 
-          # wyciągnięcie nazwy konta
-          ACCOUNT="${BRANCH#$PREFIX}"
+          # Nazwa konta (z: This PR adds the analytics account `xxx`.)
+          ACCOUNT=$(echo "$MSG" | sed -n 's/.*This PR adds the analytics account `\([^`]\+\)`.*/\1/p')
 
           if [[ -z "$ACCOUNT" ]]; then
-            echo "Error: extracted analytics account is empty"
+            echo "Error: analytics account not found"
             exit 1
           fi
 
-          echo "Extracted account: $ACCOUNT"
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "account=$ACCOUNT" >> $GITHUB_OUTPUT
+
+          echo "Extracted:"
+          echo "  PR: $PR_NUMBER"
+          echo "  Account: $ACCOUNT"
 
       - name: Trigger SA Jenkins job
         env:
