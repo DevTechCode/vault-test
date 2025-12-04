@@ -1,6 +1,10 @@
 # .github/workflows/tf-ci.yml
 name: Terraform CI
 
+permissions:
+  contents: write
+  actions: write
+  
 on:
   workflow_dispatch:
     inputs:
