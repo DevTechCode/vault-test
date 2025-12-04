@@ -13,8 +13,8 @@ on:
         default: false
         
 permissions:
-  id-token: write
   contents: read
+  actions: read
 
 jobs:
 
