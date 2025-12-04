@@ -1,0 +1,22 @@
+name: Debug PR info
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  view-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show gh auth status and PR info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh auth status
+          # Zamień OWNER/REPO na owner/repo lub usuń --repo jeśli jesteś w katalogu repo po checkout
+          gh pr view 2 --repo OWNER/REPO --json number,state,mergeable,mergeStateStatus,autoMergeRequest,author,headRefName,baseRefName | tee pr-info.json
+          echo "----- PR JSON -----"
+          cat pr-info.json
