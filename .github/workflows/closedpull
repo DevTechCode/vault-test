@@ -1,0 +1,14 @@
+name: On Pull Request Closed
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  on-pr-closed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print PR info
+        run: |
+          echo "PR #${{ github.event.pull_request.number }} has been closed."
+          echo "Merged: ${{ github.event.pull_request.merged }}"
