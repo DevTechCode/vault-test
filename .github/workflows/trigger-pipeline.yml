@@ -176,6 +176,14 @@ jobs:
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Approve pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review ${{ github.event.pull_request.number }} --approve
+          echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been approved."
+
+
       - name: Auto-merge Pull Request
         if: steps.create_pr.outputs.pr_number != ''
         id: merge
