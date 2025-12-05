@@ -178,7 +178,7 @@ jobs:
 
       - name: Approve pull request
         env:
-          GH_TOKEN: ${{ secrets.PAT_SECRET }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr review ${{ github.event.pull_request.number }} --approve
           echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been approved."
@@ -191,7 +191,7 @@ jobs:
             gh pr merge "${{ steps.create_pr.outputs.pr_number }}" --merge --delete-branch
             echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been merged"
         env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GH_TOKEN: ${{ secrets.PAT_SECRET }}
 
       - name: Trigger Terraform CI Workflow
         if: steps.merge.outcome == 'success'
