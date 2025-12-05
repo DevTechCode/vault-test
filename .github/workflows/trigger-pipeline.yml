@@ -178,7 +178,7 @@ jobs:
 
       - name: Approve pull request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_SECRET }}
         run: |
           gh pr review ${{ github.event.pull_request.number }} --approve
           echo "✅ Pull request #${{ steps.create_pr.outputs.pr_number }} has been approved."
